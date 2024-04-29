@@ -10,12 +10,13 @@ from sqlalchemy.orm import Session
 
 from . import models
 from .database import db_dependency
+from .settings import get_settings
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-SECRET_KEY = os.environ["SECRET_KEY"]
+SECRET_KEY = get_settings().secret_key
 ALGORITHM = "HS256"
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

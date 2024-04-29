@@ -6,12 +6,15 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 
 
+from .settings import get_settings
+
+
 url = URL.create(
     "postgresql",
-    environ["POSTGRES_USERNAME"],
-    environ["POSTGRES_PASSWORD"],
-    environ["POSTGRES_HOST"],
-    int(environ["POSTGRES_PORT"]),
+    get_settings().postgres_username,
+    get_settings().postgres_password,
+    get_settings().postgres_host,
+    get_settings().postgres_port,
 )
 
 engine = create_engine(url, connect_args={}, poolclass=StaticPool, echo=True)
