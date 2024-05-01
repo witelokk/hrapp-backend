@@ -59,13 +59,11 @@ def get_department(
     if company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Forbidden company")
 
-    departments = db.query(models.Department).filter_by(company_id=company_id).all()
-
     return [
         Department(
             id=department.id, name=department.name, company_id=department.company_id
         )
-        for department in departments
+        for department in company.departments
     ]
 
 

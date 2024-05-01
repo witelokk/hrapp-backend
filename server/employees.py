@@ -42,10 +42,8 @@ def get_employees(
     if department is None or department.company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    employees = db.query(models.Employee).filter_by(department_id=department_id).all()
-
     response = []
-    for employee in employees:
+    for employee in department.employees:
         positions = db.query(models.Position).filter_by(employee=employee)
         positions = [
             Position(
@@ -65,7 +63,6 @@ def get_employees(
         )
 
     return response
-    # return [Employee(id=company.id, name=company.name, positions=[Position for position in ]) for company in employees]
 
 
 @router.get("/{employee_id}")

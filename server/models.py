@@ -10,9 +10,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(30), unique=True)
     password_hash: Mapped[str] = mapped_column(String())
-
-    def __repr__(self) -> str:
-        return f"User(id={self.id!r}, username={self.name!r}, password_hash={self.password_hash!r})"
+    companies: Mapped[list["Company"]] = relationship("Company", cascade="all,delete", back_populates="owner")
 
 
 class Company(Base):
@@ -21,7 +19,8 @@ class Company(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String())
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    owner: Mapped["User"] = relationship()
+    owner: Mapped["User"] = relationship("User", back_populates="companies")
+    departments: Mapped[list["Department"]] = relationship("Department", cascade="all,delete", back_populates="company")
 
 
 class Department(Base):
@@ -30,7 +29,8 @@ class Department(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String())
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"))
-    company: Mapped["Company"] = relationship()
+    company: Mapped["Company"] = relationship("Company", back_populates="departments")
+    employees: Mapped[list["Employee"]] = relationship("Employee", cascade="all,delete", back_populates="department")
 
 
 class Employee(Base):
@@ -39,7 +39,8 @@ class Employee(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String())
     department_id: Mapped[int] = mapped_column(ForeignKey("departments.id"))
-    department: Mapped["Department"] = relationship()
+    department: Mapped["Department"] = relationship("Department", back_populates="employees")
+    positions: Mapped[list["Position"]] = relationship("Position", cascade="all,delete", back_populates="employee")
 
 
 class Position(Base):
@@ -47,7 +48,7 @@ class Position(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"))
-    employee: Mapped["Employee"] = relationship()
+    employee: Mapped["Employee"] = relationship("Employee", back_populates="positions")
     name: Mapped[str] = mapped_column(String())
     start_date: Mapped[datetime] = mapped_column(DateTime())
     end_date: Mapped[datetime] = mapped_column(DateTime(), nullable=True)
