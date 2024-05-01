@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, UTC
 import os
+import re
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -24,8 +25,13 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
 class CreateUserRequest(BaseModel):
-    username: str
+    email: str
     password: str
+
+
+class EditUserRequest(BaseModel):
+    email: str = None
+    password: str = None
 
 
 class Token(BaseModel):
@@ -33,20 +39,64 @@ class Token(BaseModel):
     token_type: str
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload["id"]
+        expire = payload["expire"]
+    except (jwt.DecodeError, KeyError):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token")
+
+    if datetime.now(UTC).timestamp() > expire:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "The token has expired")
+
+    return {"id": user_id}
+
+
+user_dependency = Annotated[dict, Depends(get_current_user)]
+
+
+@router.post("/user", status_code=status.HTTP_201_CREATED)
 def create_user(db: db_dependency, create_user_request: CreateUserRequest):
-    if db.query(models.User).filter_by(username=create_user_request.username).count():
+    if db.query(models.User).filter_by(email=create_user_request.email).count():
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            f"A user with the username {create_user_request.username} already exists",
+            f"A user with the username {create_user_request.email} already exists",
         )
 
+    if not is_email_valid(create_user_request.email):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Invalid email")
+
     user = models.User(
-        username=create_user_request.username,
-        password_hash=bcrypt_context.hash(create_user_request.password),
+        email=create_user_request.email,
+        password_hash=hash_password(create_user_request.password),
     )
 
     db.add(user)
+    db.commit()
+
+
+@router.patch("/user")
+def edit_user(
+    db: db_dependency, user: user_dependency, edit_user_request: EditUserRequest
+):
+    db_user = db.query(models.User).filter_by(id=user["id"]).first()
+
+    if edit_user_request.email:
+        if not is_email_valid(edit_user_request.email):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Invalid email")
+        db_user.email = edit_user_request.email
+
+    if edit_user_request.password:
+        db_user.password_hash = hash_password(edit_user_request.password)
+
+    db.commit()
+
+
+@router.delete("/user")
+def delete_user(db: db_dependency, user: user_dependency):
+    db_user = db.query(models.User).filter_by(id=user["id"]).first()
+    db.delete(db_user)
     db.commit()
 
 
@@ -61,7 +111,6 @@ def get_token(
 
     access_token = jwt.encode(
         {
-            "username": form_data.username,
             "id": user.id,
             "expire": (datetime.now(UTC) + timedelta(minutes=60)).timestamp(),
         },
@@ -72,8 +121,16 @@ def get_token(
     return Token(access_token=access_token, token_type="bearer")
 
 
-def authenticate_user(username: str, password: str, db: Session):
-    user = db.query(models.User).filter_by(username=username).first()
+def is_email_valid(email: str):
+    return re.match("[^@]+@[^@]+\.[^@]+", email) is not None
+
+
+def hash_password(password: str) -> str:
+    return bcrypt_context.hash(password)
+
+
+def authenticate_user(email: str, password: str, db: Session):
+    user = db.query(models.User).filter_by(email=email).first()
 
     if not user:
         return None
@@ -82,18 +139,3 @@ def authenticate_user(username: str, password: str, db: Session):
         return None
 
     return user
-
-
-def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload["username"]
-        user_id = payload["id"]
-        expire = payload["expire"]
-    except (jwt.DecodeError, KeyError):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token")
-
-    if datetime.now(UTC).timestamp() > expire:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "The token has expired")
-
-    return {"username": username, "id": user_id}
