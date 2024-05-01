@@ -53,13 +53,13 @@ def create_user(db: db_dependency, create_user_request: CreateUserRequest):
 @router.post("/token")
 def get_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency
-):
+) -> Token:
     user = authenticate_user(form_data.username, form_data.password, db)
 
     if not user:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User does not exist")
 
-    return jwt.encode(
+    access_token = jwt.encode(
         {
             "username": form_data.username,
             "id": user.id,
@@ -68,6 +68,8 @@ def get_token(
         SECRET_KEY,
         ALGORITHM,
     )
+
+    return Token(access_token=access_token, token_type="bearer")
 
 
 def authenticate_user(username: str, password: str, db: Session):
