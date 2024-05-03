@@ -24,7 +24,6 @@ class CurrentInfo(BaseModel):
 class Employee(BaseModel):
     id: int
     name: str
-    company_id: int
     current_info: CurrentInfo | None
 
     @classmethod
@@ -45,14 +44,16 @@ class Employee(BaseModel):
         return cls(
             id=employee.id,
             name=employee.name,
-            company_id=employee.company_id,
             current_info=current_info,
         )
 
 
 class CreateEmployeeRequest(BaseModel):
     name: str
-    company_id: int
+
+
+class EditEmployeeRequest(BaseModel):
+    name: str
 
 
 @router.get("/company/{company_id}")
@@ -100,7 +101,7 @@ def get_employee(
     if not employee:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    if employee.company.owner_id != user["id"]:
+    if employee.current_company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     return Employee.from_sqlalchemy_model(employee)
@@ -110,11 +111,39 @@ def get_employee(
 def create_employee(
     db: db_dependency, user: user_dependency, request: CreateEmployeeRequest
 ):
-    company = db.query(models.Company).filter_by(id=request.company_id).first()
+    employee = models.Employee(name=request.name, owner_id=user["id"])
+    db.add(employee)
+    db.commit()
 
-    if company is None or company.owner_id != user["id"]:
+
+@router.patch("/{employee_id}")
+def delete_employee(
+    db: db_dependency,
+    user: user_dependency,
+    employee_id: int,
+    edit_employee_request: EditEmployeeRequest,
+):
+    employee = db.query(models.Employee).filter_by(id=employee_id).first()
+
+    if employee is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Employee does not exist")
+
+    if employee.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    employee = models.Employee(name=request.name, company_id=request.company_id)
-    db.add(employee)
+    employee.name = edit_employee_request.name
+    db.commit()
+
+
+@router.delete("/{employee_id}")
+def delete_employee(db: db_dependency, user: user_dependency, employee_id: int):
+    employee = db.query(models.Employee).filter_by(id=employee_id).first()
+
+    if employee is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Employee does not exist")
+
+    if employee.owner_id != user["id"]:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    db.delete(employee)
     db.commit()

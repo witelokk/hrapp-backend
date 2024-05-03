@@ -89,11 +89,24 @@ def format_action(action: models.Action):
     return res
 
 
+@router.get("/{action_id}")
+def get_action(db: db_dependency, user: user_dependency, action_id: int):
+    action = db.query(models.Action).filter_by(id=action_id).first()
+
+    if action is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    if action.employee.owner_id != user["id"]:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    return format_action(action)
+
+
 @router.get("/employee/{employee_id}")
 def get_actions(db: db_dependency, user: user_dependency, employee_id: int) -> list:
     employee = db.query(models.Employee).filter_by(id=employee_id).first()
 
-    if not employee.company.owner_id == user["id"]:
+    if not employee.current_company.owner_id == user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "No access to the user")
 
     actions = db.query(models.Action).filter_by(employee=employee).all()
@@ -110,7 +123,7 @@ def create_action(
 ):
     employee = db.query(models.Employee).filter_by(id=employee_id).first()
 
-    if not employee.company.owner_id == user["id"]:
+    if not employee.current_company.owner_id == user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     if create_action_request.action_type == "recruitment":
@@ -180,3 +193,18 @@ def create_action(
         db.add(action)
 
     db.commit()
+
+
+@router.delete("/{action_id}")
+def delete_action(db: db_dependency, user: user_dependency, action_id: int):
+    action = db.query(models.Action).filter_by(id=action_id).first()
+
+    if action is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    if action.employee.owner_id != user["id"]:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    db.delete(action)
+    db.commit()
+

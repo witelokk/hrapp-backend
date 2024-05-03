@@ -14,6 +14,10 @@ class User(Base):
     companies: Mapped[list["Company"]] = relationship(
         "Company", cascade="all,delete", back_populates="owner"
     )
+    employees: Mapped[list["Employee"]] = relationship(
+        "Employee", cascade="all,delete", back_populates="owner"
+    )
+
 
 
 class Company(Base):
@@ -25,9 +29,6 @@ class Company(Base):
     owner: Mapped["User"] = relationship("User", back_populates="companies")
     departments: Mapped[list["Department"]] = relationship(
         "Department", cascade="all,delete", back_populates="company"
-    )
-    employees: Mapped[list["Employee"]] = relationship(
-        "Employee", cascade="all,delete", back_populates="company"
     )
 
 
@@ -45,11 +46,11 @@ class Employee(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String())
-    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"))
-    company: Mapped["Company"] = relationship("Company", back_populates="employees")
     actions: Mapped[list["Action"]] = relationship(
         "Action", cascade="all,delete", back_populates="employee"
     )
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    owner: Mapped["User"] = relationship("User", back_populates="employees")
 
     @property
     def current_position(self) -> str:
@@ -113,6 +114,10 @@ class Employee(Base):
             salary_changes, key=lambda transfer: transfer.change_date
         )
         return salary_changes[-1].new_salary if salary_changes else recruitment.salary
+    
+    @property
+    def current_company(self) -> Company:
+        return self.current_department.company
 
 
 class Action(Base):

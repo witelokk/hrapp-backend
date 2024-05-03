@@ -25,11 +25,19 @@ class CreateDepartmentRequest(BaseModel):
     company_id: int
 
 
+class EditDepartmentRequest(BaseModel):
+    name: str = None
+    company_id: int = None
+
+
 @router.get("/{department_id}")
 def get_department(
     db: db_dependency, user: user_dependency, department_id: int
 ) -> Department:
     department = db.query(models.Department).filter_by(id=department_id).first()
+
+    if department is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Department does not exist")
 
     if department.company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
@@ -38,7 +46,7 @@ def get_department(
 
 
 @router.get("/company/{company_id}")
-def get_department(
+def get_departments_by_company(
     db: db_dependency, user: user_dependency, company_id: int
 ) -> list[Department]:
     company = db.query(models.Company).filter_by(id=company_id).first()
@@ -71,4 +79,65 @@ def create_department(
 
     department = models.Department(company_id=request.company_id, name=request.name)
     db.add(department)
+    db.commit()
+
+
+@router.patch("/{department_id}")
+def edit_department(
+    db: db_dependency,
+    user: user_dependency,
+    department_id: int,
+    edit_department_request: EditDepartmentRequest,
+):
+    department = db.query(models.Department).filter_by(id=department_id).first()
+
+    if department is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Department does not exist")
+
+    if department.company.owner_id != user["id"]:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    if edit_department_request.company_id is not None:
+        company = (
+            db.query(models.Company)
+            .filter_by(id=edit_department_request.company_id)
+            .first()
+        )
+
+        if company is None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "New company does not exist"
+            )
+
+        if company.owner_id != user["id"]:
+            raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+        department.company = company
+
+    if edit_department_request.name:
+        department.name = edit_department_request.name
+
+    db.commit()
+
+
+@router.delete("/{department_id}")
+def delete_department(db: db_dependency, user: user_dependency, department_id: int):
+    department = db.query(models.Department).filter_by(id=department_id).first()
+
+    if department is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Department does not exist")
+
+    if department.company.owner_id != user["id"]:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    owner_employees = db.query(models.Employee).filter_by(owner_id=user["id"]).all()
+    department_employees = [
+        employee
+        for employee in owner_employees
+        if employee.current_department == department
+    ]
+
+    for employee in department_employees:
+        db.delete(employee)
+
     db.commit()
