@@ -23,18 +23,6 @@ class CreateDepartmentRequest(BaseModel):
     company_id: int
 
 
-@router.get("/")
-def get_departments(db: db_dependency, user: user_dependency) -> list[Department]:
-    departments = db.query(models.Department).filter_by(user_id=user["id"]).all()
-
-    return [
-        Department(
-            id=department.id, name=department.name, company_id=department.company_id
-        )
-        for department in departments
-    ]
-
-
 @router.get("/{department_id}")
 def get_department(
     db: db_dependency, user: user_dependency, department_id: int

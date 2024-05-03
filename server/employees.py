@@ -13,56 +13,80 @@ router = APIRouter(prefix="/employees", tags=["employees"])
 user_dependency = Annotated[dict, Depends(auth.get_current_user)]
 
 
-class Position(BaseModel):
-    name: str
-    start_date: datetime
-    end_date: datetime | None
+class CurrentInfo(BaseModel):
+    position: str
+    department_id: int
+    salary: float
 
 
 class Employee(BaseModel):
     id: int
     name: str
-    active: bool
-    positions: list[Position]
+    company_id: int
+    current_info: CurrentInfo | None
+
+    @classmethod
+    def from_sqlalchemy_model(cls, employee: models.Employee) -> "Employee":
+        current_position = employee.current_position
+        current_department = employee.current_department
+        current_salary = employee.current_salary
+
+        if not any((current_position, current_department, current_salary)):
+            current_info = None
+        else:
+            current_info = CurrentInfo(
+                position=current_position,
+                department_id=current_department.id,
+                salary=current_salary,
+            )
+
+        return cls(
+            id=employee.id,
+            name=employee.name,
+            company_id=employee.company_id,
+            current_info=current_info,
+        )
 
 
 class CreateEmployeeRequest(BaseModel):
     name: str
-    department_id: int
-    position: str
-    employment_date: datetime
+    company_id: int
+
+
+@router.get("/company/{company_id}")
+def get_employees_by_company(
+    db: db_dependency, user: user_dependency, company_id: int
+) -> list[Employee]:
+    company = db.query(models.Company).filter_by(id=company_id).first()
+
+    if company is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Company does not exist")
+
+    if company.owner_id != user["id"]:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    employees = db.query(models.Employee).filter_by(company=company).all()
+    return [Employee.from_sqlalchemy_model(employee) for employee in employees]
 
 
 @router.get("/department/{department_id}")
-def get_employees(
+def get_employees_by_company(
     db: db_dependency, user: user_dependency, department_id: int
 ) -> list[Employee]:
     department = db.query(models.Department).filter_by(id=department_id).first()
 
-    if department is None or department.company.owner_id != user["id"]:
+    if department is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Department does not exist")
+
+    if department.company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    response = []
-    for employee in department.employees:
-        positions = db.query(models.Position).filter_by(employee=employee)
-        positions = [
-            Position(
-                name=position.name,
-                start_date=position.start_date,
-                end_date=position.end_date,
-            )
-            for position in positions
-        ]
-        response.append(
-            Employee(
-                id=employee.id,
-                name=employee.name,
-                positions=positions,
-                active=positions[-1].end_date is None,
-            )
-        )
-
-    return response
+    employees = db.query(models.Employee).filter_by(company=department.company).all()
+    return [
+        Employee.from_sqlalchemy_model(employee)
+        for employee in employees
+        if employee.current_department == department
+    ]
 
 
 @router.get("/{employee_id}")
@@ -71,37 +95,24 @@ def get_employee(
 ) -> Employee:
     employee = db.query(models.Employee).filter_by(id=employee_id).first()
 
-    if employee.department.company.owner_id != user["id"]:
+    if not employee:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    if employee.company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    return Employee(
-        id=employee.id,
-        name=employee.name,
-        department_id=employee.department_id,
-    )
+    return Employee.from_sqlalchemy_model(employee)
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_employee(
     db: db_dependency, user: user_dependency, request: CreateEmployeeRequest
 ):
-    department = db.query(models.Department).filter_by(id=request.department_id).first()
+    company = db.query(models.Company).filter_by(id=request.company_id).first()
 
-    if department is None or department.company.owner_id != user["id"]:
+    if company is None or company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    employee = models.Employee(name=request.name, department_id=request.department_id)
-
-    position = models.Position(
-        employee=employee,
-        name=request.position,
-        start_date=request.employment_date,
-        end_date=None,
-    )
-
-    with db.begin(True) as transaction:
-        db.add(employee)
-        db.add(position)
-        transaction.commit()
-
+    employee = models.Employee(name=request.name, company_id=request.company_id)
+    db.add(employee)
     db.commit()
