@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, UTC
-import os
 import re
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,9 +8,9 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from . import models
-from .database import db_dependency
-from .settings import get_settings
+from .. import models
+from ..database import db_dependency
+from ..settings import get_settings
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])

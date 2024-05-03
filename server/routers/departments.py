@@ -3,8 +3,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
-from . import models, auth
-from .database import db_dependency
+from . import auth
+
+from .. import models
+from ..database import db_dependency
 
 router = APIRouter(prefix="/departments", tags=["departments"])
 

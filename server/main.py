@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
-from . import auth, companies, departments, employees, actions
+from .routers import actions, auth, companies, departments, employees
+
 from .database import engine, Base
 
 
