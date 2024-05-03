@@ -25,6 +25,8 @@ class Company(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String())
+    inn: Mapped[str] = mapped_column(String(10))
+    inn: Mapped[str] = mapped_column(String(9))
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     owner: Mapped["User"] = relationship("User", back_populates="companies")
     departments: Mapped[list["Department"]] = relationship(
