@@ -38,7 +38,7 @@ class Token(BaseModel):
     token_type: str
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+def get_current_user(token: Annotated[str, Depends(oauth2_bearer, )]):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload["id"]
@@ -55,8 +55,9 @@ def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
-@router.post("/user", status_code=status.HTTP_201_CREATED)
+@router.post("/user", status_code=status.HTTP_201_CREATED, responses={status.HTTP_409_CONFLICT: {"model": None, "description": "user exists"}})
 def create_user(db: db_dependency, create_user_request: CreateUserRequest):
+    """Creates a user with given credentials"""
     if db.query(models.User).filter_by(email=create_user_request.email).count():
         raise HTTPException(
             status.HTTP_409_CONFLICT,
