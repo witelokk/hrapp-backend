@@ -73,7 +73,7 @@ def get_employees_by_company(
 
 
 @router.get("/department/{department_id}")
-def get_employees_by_company(
+def get_employees_by_department(
     db: db_dependency, user: user_dependency, department_id: int
 ) -> list[Employee]:
     department = db.query(models.Department).filter_by(id=department_id).first()
@@ -84,7 +84,7 @@ def get_employees_by_company(
     if department.company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    employees = db.query(models.Employee).filter_by(company=department.company).all()
+    employees = db.query(models.Employee).filter_by(owner_id=user["id"]).all()
     return [
         Employee.from_sqlalchemy_model(employee)
         for employee in employees
