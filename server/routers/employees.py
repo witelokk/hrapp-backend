@@ -68,8 +68,8 @@ def get_employees_by_company(
     if company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    employees = db.query(models.Employee).filter_by(company=company).all()
-    return [Employee.from_sqlalchemy_model(employee) for employee in employees]
+    employees = db.query(models.Employee).all()
+    return [Employee.from_sqlalchemy_model(employee) for employee in employees if employee.current_company == company]
 
 
 @router.get("/department/{department_id}")
