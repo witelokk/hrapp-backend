@@ -106,7 +106,7 @@ def get_action(db: db_dependency, user: user_dependency, action_id: int):
 def get_actions(db: db_dependency, user: user_dependency, employee_id: int) -> list:
     employee = db.query(models.Employee).filter_by(id=employee_id).first()
 
-    if not employee.current_company.owner_id == user["id"]:
+    if employee.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "No access to the user")
 
     actions = db.query(models.Action).filter_by(employee=employee).all()
@@ -123,7 +123,7 @@ def create_action(
 ):
     employee = db.query(models.Employee).filter_by(id=employee_id).first()
 
-    if not employee.current_company.owner_id == user["id"]:
+    if employee.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     if create_action_request.action_type == "recruitment":
