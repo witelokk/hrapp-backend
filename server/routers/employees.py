@@ -101,7 +101,7 @@ def get_employee(
     if not employee:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    if employee.current_company.owner_id != user["id"]:
+    if employee.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     return Employee.from_sqlalchemy_model(employee)
