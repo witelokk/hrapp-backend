@@ -110,10 +110,11 @@ def get_employee(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_employee(
     db: db_dependency, user: user_dependency, request: CreateEmployeeRequest
-):
+) -> Employee:
     employee = models.Employee(name=request.name, owner_id=user["id"])
     db.add(employee)
     db.commit()
+    return Employee.from_sqlalchemy_model(employee)
 
 
 @router.patch("/{employee_id}")
