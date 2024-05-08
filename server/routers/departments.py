@@ -37,7 +37,7 @@ def get_department(
     department = db.query(models.Department).filter_by(id=department_id).first()
 
     if department is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Department does not exist")
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
 
     if department.company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
@@ -55,7 +55,7 @@ def get_departments_by_company(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Company doesn't exist")
 
     if company.owner_id != user["id"]:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Forbidden company")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Forbidden company")
 
     return [
         Department(
@@ -75,7 +75,7 @@ def create_department(
         raise HTTPException(status.HTTP_400_BAD_REQUEST)
 
     if company.owner_id != user["id"]:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST)
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     department = models.Department(company_id=request.company_id, name=request.name)
     db.add(department)

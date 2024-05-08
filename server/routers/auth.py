@@ -107,7 +107,7 @@ def get_token(
     user = authenticate_user(form_data.username, form_data.password, db)
 
     if not user:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User does not exist")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid credentials")
 
     access_token = jwt.encode(
         {
