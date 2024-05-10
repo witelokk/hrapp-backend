@@ -62,29 +62,29 @@ def format_action(action: models.Action):
     }
 
     if action.action_type == "recruitment":
-        res.update(
-            {
-                "department_id": action.department_id,
-                "recruitment_date": action.recruitment_date,
-                "position": action.position,
-                "salary": action.salary,
-            }
-        )
+        res[action.action_type] = {
+            "department_id": action.department_id,
+            "recruitment_date": action.recruitment_date,
+            "position": action.position,
+            "salary": action.salary,
+        }
     elif action.action_type == "position_transfer":
-        res.update(
-            {"transfer_date": action.transfer_date, "new_position": action.new_position}
-        )
+        res[action.action_type] = {
+            "transfer_date": action.transfer_date,
+            "new_position": action.new_position,
+        }
     elif action.action_type == "department_transfer":
-        res.update(
-            {
-                "transfer_date": action.transfer_date,
-                "new_department_id": action.new_department_id,
-            }
-        )
+        res[action.action_type] = {
+            "transfer_date": action.transfer_date,
+            "new_department_id": action.new_department_id,
+        }
     elif action.action_type == "salary_change":
-        res.update({"change_date": action.change_date, "new_salary": action.new_salary})
+        res[action.action_type] = {
+            "change_date": action.change_date,
+            "new_salary": action.new_salary,
+        }
     elif action.action_type == "dismissal":
-        res.update({"dismissal_date": action.dismissal_date})
+        res[action.action_type] = {"dismissal_date": action.dismissal_date}
 
     return res
 
@@ -207,4 +207,3 @@ def delete_action(db: db_dependency, user: user_dependency, action_id: int):
 
     db.delete(action)
     db.commit()
-
