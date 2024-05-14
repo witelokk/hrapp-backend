@@ -33,7 +33,7 @@ class EditCompanyRequest(BaseModel):
     kpp: Annotated[str, StringConstraints(min_length=9, max_length=9)] = None
 
 
-@router.get("/")
+@router.get("")
 def get_companies(db: db_dependency, user: user_dependency) -> list[Company]:
     companies = db.query(models.Company).filter_by(owner_id=user["id"]).all()
 
