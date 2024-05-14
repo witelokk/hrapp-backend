@@ -1,7 +1,7 @@
 import datetime
 from xml.dom.minidom import Document
-from .database import Base
-from sqlalchemy import String, ForeignKey, Date, Float, Date, Interval
+from .database import Base, SessionLocal
+from sqlalchemy import String, ForeignKey, Date, Float, Date, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
@@ -18,6 +18,20 @@ class User(Base):
         "Employee", cascade="all,delete", back_populates="owner"
     )
 
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=1)
+    token_hash: Mapped[str] = mapped_column(String())
+    expires: Mapped[datetime.datetime] = mapped_column(DateTime())
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user: Mapped["User"] = relationship()
+
+    @classmethod
+    def delete_expired_tokens(cls):
+        with SessionLocal() as db:
+            db.query(cls).filter(cls.expires > datetime.datetime.now()).delete()
 
 
 class Company(Base):
@@ -116,7 +130,7 @@ class Employee(Base):
             salary_changes, key=lambda transfer: transfer.change_date
         )
         return salary_changes[-1].new_salary if salary_changes else recruitment.salary
-    
+
     @property
     def current_company(self) -> Company:
         if not self.current_company:

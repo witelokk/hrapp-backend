@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, UTC
+from hashlib import sha256
 import re
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status
+from uuid import uuid4
+from fastapi import APIRouter, Depends, Form, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import jwt
 from passlib.context import CryptContext
@@ -18,6 +20,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 SECRET_KEY = get_settings().secret_key
 ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRES_AFTER = timedelta(minutes=10)
+REFRESH_TOKEN_EXPIRES_AFTER = timedelta(days=100)
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
@@ -35,10 +39,38 @@ class EditUserRequest(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_bearer, )]):
+class TokenRequestForm(OAuth2PasswordRequestForm):
+    def __init__(
+        self,
+        grant_type: str = Form(default=None, regex="password|refresh_token"),
+        username: str = Form(default=""),
+        password: str = Form(default=""),
+        refresh_token: str = Form(default=""),
+        client_id: str | None = Form(default=None),
+        client_secret: str | None = Form(default=None),
+    ):
+        super().__init__(
+            grant_type=grant_type,
+            username=username,
+            password=password,
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+        self.refresh_token = refresh_token
+
+
+def get_current_user(
+    token: Annotated[
+        str,
+        Depends(
+            oauth2_bearer,
+        ),
+    ]
+):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload["id"]
@@ -55,7 +87,11 @@ def get_current_user(token: Annotated[str, Depends(oauth2_bearer, )]):
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
-@router.post("/user", status_code=status.HTTP_201_CREATED, responses={status.HTTP_409_CONFLICT: {"model": None, "description": "user exists"}})
+@router.post(
+    "/user",
+    status_code=status.HTTP_201_CREATED,
+    responses={status.HTTP_409_CONFLICT: {"model": None, "description": "user exists"}},
+)
 def create_user(db: db_dependency, create_user_request: CreateUserRequest):
     """Creates a user with given credentials"""
     if db.query(models.User).filter_by(email=create_user_request.email).count():
@@ -102,23 +138,49 @@ def delete_user(db: db_dependency, user: user_dependency):
 
 @router.post("/token")
 def get_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency
+    form_data: Annotated[TokenRequestForm, Depends()], db: db_dependency
 ) -> Token:
-    user = authenticate_user(form_data.username, form_data.password, db)
+    if form_data.grant_type == "password":
+        user = authenticate_user(form_data.username, form_data.password, db)
+        if not user:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid credentials")
+    elif form_data.grant_type == "refresh_token":
+        models.RefreshToken.delete_expired_tokens()
+        refresh_token = (
+            db.query(models.RefreshToken)
+            .filter_by(token_hash=sha256(form_data.refresh_token.encode()).hexdigest())
+            .first()
+        )
 
-    if not user:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid credentials")
+        if not refresh_token:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid refresh token")
+
+        db.delete(refresh_token)
+        user = refresh_token.user
+    else:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid grant type")
 
     access_token = jwt.encode(
         {
             "id": user.id,
-            "expire": (datetime.now(UTC) + timedelta(minutes=60)).timestamp(),
+            "expire": (datetime.now(UTC) + ACCESS_TOKEN_EXPIRES_AFTER).timestamp(),
         },
         SECRET_KEY,
         ALGORITHM,
     )
 
-    return Token(access_token=access_token, token_type="bearer")
+    refresh_token = uuid4().hex
+    db_refresh_token = models.RefreshToken(
+        token_hash=sha256(refresh_token.encode()).hexdigest(),
+        expires=(datetime.now(UTC) + REFRESH_TOKEN_EXPIRES_AFTER),
+        user=user,
+    )
+    db.add(db_refresh_token)
+    db.commit()
+
+    return Token(
+        access_token=access_token, refresh_token=refresh_token, token_type="bearer"
+    )
 
 
 def is_email_valid(email: str):
