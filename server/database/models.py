@@ -1,6 +1,5 @@
 import datetime
-from xml.dom.minidom import Document
-from .database import Base, SessionLocal
+from .database import Base
 from sqlalchemy import String, ForeignKey, Date, Float, Date, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,6 +16,9 @@ class User(Base):
     employees: Mapped[list["Employee"]] = relationship(
         "Employee", cascade="all,delete", back_populates="owner"
     )
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+        "RefreshToken", cascade="all,delete", back_populates="user"
+    )
 
 
 class RefreshToken(Base):
@@ -26,12 +28,12 @@ class RefreshToken(Base):
     token_hash: Mapped[str] = mapped_column(String())
     expires: Mapped[datetime.datetime] = mapped_column(DateTime())
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    user: Mapped["User"] = relationship()
+    user: Mapped["User"] = relationship(back_populates="refresh_tokens")
 
     @classmethod
-    def delete_expired_tokens(cls):
-        with SessionLocal() as db:
-            db.query(cls).filter(cls.expires > datetime.datetime.now()).delete()
+    def delete_expired_tokens(cls, db):
+        db.query(cls).filter(datetime.datetime.now() > cls.expires).delete()
+        db.commit()
 
 
 class Company(Base):

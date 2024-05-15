@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from .routers import actions, auth, companies, departments, employees, reports
+from .api.routers import actions, auth, companies, departments, employees, reports
 
-from .database import engine, Base
+from .database.database import engine, Base
 
 
 app = FastAPI()

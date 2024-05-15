@@ -3,15 +3,11 @@ from fastapi import Depends, HTTPException, status
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
-from . import auth
-
-from .. import models
-from ..database import db_dependency
+from server.api.dependenicies import user_dependency
+from server.api.dependenicies import user_dependency, db_dependency
+from server.database import models
 
 router = APIRouter(prefix="/departments", tags=["departments"])
-
-
-user_dependency = Annotated[dict, Depends(auth.get_current_user)]
 
 
 class Department(BaseModel):

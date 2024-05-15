@@ -1,6 +1,5 @@
 from io import BytesIO
-from typing import Annotated
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from fastapi.responses import Response
 from fastapi.routing import APIRouter
 from reportlab.lib.pagesizes import A4
@@ -8,19 +7,13 @@ from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
 )
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
+from server.api.dependenicies import user_dependency
 
-from . import auth
-
-from .. import models
-from ..database import db_dependency
+from server.api.dependenicies import user_dependency, db_dependency
+from server.database import models
 
 router = APIRouter(prefix="/reports", tags=["reports"])
-
-
-user_dependency = Annotated[dict, Depends(auth.get_current_user)]
 
 
 @router.get("/company/{company_id}")
