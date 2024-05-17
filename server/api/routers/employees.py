@@ -142,7 +142,18 @@ def get_employee(
 def create_employee(
     db: db_dependency, user: user_dependency, request: CreateEmployeeRequest
 ) -> Employee:
-    employee = models.Employee(name=request.name, owner_id=user["id"])
+    employee = models.Employee(
+        name=request.name, 
+        gender=request.gender,
+        birthdate=request.birthdate,
+        inn=request.inn,
+        snils=request.snils,
+        address=request.address,
+        passport_number=request.passport_number,
+        passport_date=request.passport_date,
+        passport_issuer=request.passport_issuer,
+        owner_id=user["id"]
+    )
     db.add(employee)
     db.commit()
     return Employee.from_sqlalchemy_model(employee)
