@@ -19,14 +19,18 @@ class Company(BaseModel):
 
 class CreateCompanyRequest(BaseModel):
     name: str
-    inn: Annotated[str, StringConstraints(min_length=10, max_length=10)]
-    kpp: Annotated[str, StringConstraints(min_length=9, max_length=9)]
+    inn: Annotated[str, StringConstraints(min_length=10, max_length=10, pattern="\d+")]
+    kpp: Annotated[str, StringConstraints(min_length=9, max_length=9, pattern="\d+")]
 
 
 class EditCompanyRequest(BaseModel):
     name: str = None
-    inn: Annotated[str, StringConstraints(min_length=10, max_length=10)] = None
-    kpp: Annotated[str, StringConstraints(min_length=9, max_length=9)] = None
+    inn: Annotated[str, StringConstraints(min_length=10, max_length=10, pattern="\d+")] = None
+    kpp: Annotated[str, StringConstraints(min_length=9, max_length=9, pattern="\d+")] = None
+
+
+class CreatedCompanyId(BaseModel):
+    id: int
 
 
 @router.get("")
@@ -52,12 +56,13 @@ def get_company(db: db_dependency, user: user_dependency, company_id: int) -> Co
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_company(
     db: db_dependency, user: user_dependency, request: CreateCompanyRequest
-):
+) -> CreatedCompanyId:
     company = models.Company(
         owner_id=user["id"], name=request.name, inn=request.inn, kpp=request.kpp
     )
     db.add(company)
     db.commit()
+    return CreatedCompanyId(id=company.id)
 
 
 @router.patch("/{company_id}")

@@ -26,6 +26,10 @@ class EditDepartmentRequest(BaseModel):
     company_id: int = None
 
 
+class CreatedDepartmentId(BaseModel):
+    id: int = None
+
+
 @router.get("/{department_id}")
 def get_department(
     db: db_dependency, user: user_dependency, department_id: int
@@ -64,7 +68,7 @@ def get_departments_by_company(
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_department(
     db: db_dependency, user: user_dependency, request: CreateDepartmentRequest
-):
+) -> CreatedDepartmentId:
     company = db.query(models.Company).filter_by(id=request.company_id).first()
 
     if company is None:
@@ -76,6 +80,8 @@ def create_department(
     department = models.Department(company_id=request.company_id, name=request.name)
     db.add(department)
     db.commit()
+
+    return CreatedDepartmentId(id=company.id)
 
 
 @router.patch("/{department_id}")
