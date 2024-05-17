@@ -1,6 +1,6 @@
 import datetime
 from .database import Base
-from sqlalchemy import String, ForeignKey, Date, Float, Date, DateTime
+from sqlalchemy import Enum, String, ForeignKey, Date, Float, Date, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
@@ -59,11 +59,24 @@ class Department(Base):
     company: Mapped["Company"] = relationship("Company", back_populates="departments")
 
 
+class EmployeeGender(Enum):
+    male = 1
+    female = 2
+
+
 class Employee(Base):
     __tablename__ = "employees"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String())
+    gender: Mapped[EmployeeGender] = mapped_column(EmployeeGender(name="employee_gender"))
+    birthdate: Mapped[datetime.datetime] = mapped_column(DateTime())
+    inn: Mapped[str] = mapped_column(String(12))
+    snils: Mapped[str] = mapped_column(String(11))
+    address: Mapped[str] = mapped_column(String())
+    passport_number: Mapped[str] = mapped_column(String(10))
+    passport_date: Mapped[str] = mapped_column(String())
+    passport_issuer: Mapped[str] = mapped_column(String())
     actions: Mapped[list["Action"]] = relationship(
         "Action", cascade="all,delete", back_populates="employee"
     )

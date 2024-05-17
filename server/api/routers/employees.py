@@ -1,8 +1,9 @@
 from datetime import datetime
+from enum import Enum
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.routing import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, StringConstraints
 
 from server.api.dependenicies import user_dependency
 from server.api.dependenicies import user_dependency, db_dependency
@@ -17,9 +18,22 @@ class CurrentInfo(BaseModel):
     salary: float
 
 
+class EmployeeGender(str, Enum):
+    male = "male"
+    female = "female"
+
+
 class Employee(BaseModel):
     id: int
     name: str
+    gender: EmployeeGender
+    birthdate: datetime
+    inn: Annotated[str, StringConstraints(min_length=12, max_length=12, pattern="\d+")]
+    snils: Annotated[str, StringConstraints(min_length=11, max_length=11, pattern="\d+")]
+    address: str
+    passport_number: Annotated[str, StringConstraints(min_length=10, max_length=10, pattern="\d+")]
+    passport_date: datetime
+    passport_issuer: str
     current_info: CurrentInfo | None
 
     @classmethod
@@ -40,12 +54,29 @@ class Employee(BaseModel):
         return cls(
             id=employee.id,
             name=employee.name,
+            gender=employee.gender,
+            birthdate=employee.birthdate,
+            inn=employee.inn,
+            snils=employee.snils,
+            address=employee.address,
+            passport_number=employee.passport_number,
+            passport_date=employee.passport_date,
+            passport_issuer=employee.passport_issuer,
             current_info=current_info,
         )
 
 
 class CreateEmployeeRequest(BaseModel):
     name: str
+    gender: EmployeeGender
+    birthdate: datetime
+    inn: Annotated[str, StringConstraints(min_length=12, max_length=12, pattern="\d+")]
+    snils: Annotated[str, StringConstraints(min_length=11, max_length=11, pattern="\d+")]
+    address: str
+    passport_number: Annotated[str, StringConstraints(min_length=10, max_length=10, pattern="\d+")]
+    passport_date: datetime
+    passport_issuer: str
+
 
 
 class EditEmployeeRequest(BaseModel):
