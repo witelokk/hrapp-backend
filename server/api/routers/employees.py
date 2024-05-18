@@ -29,9 +29,13 @@ class Employee(BaseModel):
     gender: EmployeeGender
     birthdate: datetime
     inn: Annotated[str, StringConstraints(min_length=12, max_length=12, pattern="\d+")]
-    snils: Annotated[str, StringConstraints(min_length=11, max_length=11, pattern="\d+")]
+    snils: Annotated[
+        str, StringConstraints(min_length=11, max_length=11, pattern="\d+")
+    ]
     address: str
-    passport_number: Annotated[str, StringConstraints(min_length=10, max_length=10, pattern="\d+")]
+    passport_number: Annotated[
+        str, StringConstraints(min_length=10, max_length=10, pattern="\d+")
+    ]
     passport_date: datetime
     passport_issuer: str
     current_info: CurrentInfo | None
@@ -54,7 +58,7 @@ class Employee(BaseModel):
         return cls(
             id=employee.id,
             name=employee.name,
-            gender=employee.gender,
+            gender=employee.gender.name,
             birthdate=employee.birthdate,
             inn=employee.inn,
             snils=employee.snils,
@@ -71,12 +75,15 @@ class CreateEmployeeRequest(BaseModel):
     gender: EmployeeGender
     birthdate: datetime
     inn: Annotated[str, StringConstraints(min_length=12, max_length=12, pattern="\d+")]
-    snils: Annotated[str, StringConstraints(min_length=11, max_length=11, pattern="\d+")]
+    snils: Annotated[
+        str, StringConstraints(min_length=11, max_length=11, pattern="\d+")
+    ]
     address: str
-    passport_number: Annotated[str, StringConstraints(min_length=10, max_length=10, pattern="\d+")]
+    passport_number: Annotated[
+        str, StringConstraints(min_length=10, max_length=10, pattern="\d+")
+    ]
     passport_date: datetime
     passport_issuer: str
-
 
 
 class EditEmployeeRequest(BaseModel):
@@ -143,8 +150,12 @@ def create_employee(
     db: db_dependency, user: user_dependency, request: CreateEmployeeRequest
 ) -> Employee:
     employee = models.Employee(
-        name=request.name, 
-        gender=request.gender,
+        name=request.name,
+        gender=(
+            models.EmployeeGender.male
+            if request.gender == "male"
+            else models.EmployeeGender.female
+        ),
         birthdate=request.birthdate,
         inn=request.inn,
         snils=request.snils,
@@ -152,7 +163,7 @@ def create_employee(
         passport_number=request.passport_number,
         passport_date=request.passport_date,
         passport_issuer=request.passport_issuer,
-        owner_id=user["id"]
+        owner_id=user["id"],
     )
     db.add(employee)
     db.commit()

@@ -1,7 +1,8 @@
 import datetime
 from .database import Base
-from sqlalchemy import Enum, String, ForeignKey, Date, Float, Date, DateTime
+from sqlalchemy import String, ForeignKey, Date, Float, Date, DateTime, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from enum import Enum
 
 
 class User(Base):
@@ -69,7 +70,7 @@ class Employee(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String())
-    gender: Mapped[EmployeeGender] = mapped_column(EmployeeGender(name="employee_gender"))
+    gender: Mapped[EmployeeGender] = mapped_column(SQLEnum(EmployeeGender))
     birthdate: Mapped[datetime.datetime] = mapped_column(DateTime())
     inn: Mapped[str] = mapped_column(String(12))
     snils: Mapped[str] = mapped_column(String(11))
