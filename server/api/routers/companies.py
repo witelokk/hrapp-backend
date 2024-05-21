@@ -1,41 +1,31 @@
-from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.routing import APIRouter
-from pydantic import BaseModel, StringConstraints
 
-from server.api.dependenicies import user_dependency
-from server.api.dependenicies import user_dependency, db_dependency
+from server.schemas.companies import (
+    Company,
+    CreateCompanyRequest,
+    EditCompanyRequest,
+    CreatedCompanyId,
+)
+from server.schemas.error import Error
+from server.api.dependenicies import user_dependency, companies_service_dependency
 from server.database import models
+from server.services.companies_service import CompanyNotExistError, ForbiddenError
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
 
-class Company(BaseModel):
-    id: int
-    name: str
-    inn: str
-    kpp: str
-
-
-class CreateCompanyRequest(BaseModel):
-    name: str
-    inn: Annotated[str, StringConstraints(min_length=10, max_length=10, pattern="\d+")]
-    kpp: Annotated[str, StringConstraints(min_length=9, max_length=9, pattern="\d+")]
-
-
-class EditCompanyRequest(BaseModel):
-    name: str = None
-    inn: Annotated[str, StringConstraints(min_length=10, max_length=10, pattern="\d+")] = None
-    kpp: Annotated[str, StringConstraints(min_length=9, max_length=9, pattern="\d+")] = None
-
-
-class CreatedCompanyId(BaseModel):
-    id: int
-
-
-@router.get("")
-def get_companies(db: db_dependency, user: user_dependency) -> list[Company]:
-    companies = db.query(models.Company).filter_by(owner_id=user["id"]).all()
+@router.get(
+    "/",
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"model": Error},
+    },
+)
+def get_companies(
+    companies_service: companies_service_dependency,
+    user: user_dependency,
+) -> list[Company]:
+    companies = companies_service.get_companies(user["id"])
 
     return [
         Company(id=company.id, name=company.name, inn=company.inn, kpp=company.kpp)
@@ -43,71 +33,102 @@ def get_companies(db: db_dependency, user: user_dependency) -> list[Company]:
     ]
 
 
-@router.get("/{company_id}")
-def get_company(db: db_dependency, user: user_dependency, company_id: int) -> Company:
-    company = db.query(models.Company).filter_by(id=company_id).first()
-
-    if company.owner.id != user["id"]:
+@router.get(
+    "/{company_id}",
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": Error},
+        status.HTTP_403_FORBIDDEN: {"model": Error},
+        status.HTTP_401_UNAUTHORIZED: {"model": Error},
+    },
+)
+def get_company(
+    companies_service: companies_service_dependency,
+    user: user_dependency,
+    company_id: int,
+) -> Company:
+    try:
+        company = companies_service.get_company(user["id"], company_id)
+    except CompanyNotExistError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    except ForbiddenError:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
     return Company(id=company.id, name=company.name, inn=company.inn, kpp=company.kpp)
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_401_UNAUTHORIZED: {"model": Error},
+    },
+)
 def create_company(
-    db: db_dependency, user: user_dependency, request: CreateCompanyRequest
+    companies_service: companies_service_dependency,
+    user: user_dependency,
+    request: CreateCompanyRequest,
 ) -> CreatedCompanyId:
-    company = models.Company(
-        owner_id=user["id"], name=request.name, inn=request.inn, kpp=request.kpp
+    company_id = companies_service.create_company(
+        request.name, request.inn, request.kpp, user["id"]
     )
-    db.add(company)
-    db.commit()
-    return CreatedCompanyId(id=company.id)
+    return CreatedCompanyId(id=company_id)
 
 
-@router.patch("/{company_id}")
+@router.patch(
+    "/{company_id}",
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": Error},
+        status.HTTP_401_UNAUTHORIZED: {"model": Error},
+        status.HTTP_403_FORBIDDEN: {"model": Error},
+    },
+)
 def edit_company(
-    db: db_dependency,
+    companies_service: companies_service_dependency,
     user: user_dependency,
     company_id: int,
     edit_company_request: EditCompanyRequest,
-):
-    company = db.query(models.Companies).filter_by(id=company_id).first()
-
-    if company is None:
+) -> None:
+    try:
+        companies_service.edit_company(
+            user["id"],
+            company_id,
+            name=edit_company_request.name,
+            inn=edit_company_request.inn,
+            kpp=edit_company_request.kpp,
+        )
+    except CompanyNotExistError:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Company does not exist")
-
-    if company.owner_id != user["id"]:
+    except ForbiddenError:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    if edit_company_request.name:
-        company.name = edit_company_request.name
 
-    if edit_company_request.inn:
-        company.inn = edit_company_request.inn
+# @router.delete(
+#     "/{company_id}",
+#     responses={
+#         status.HTTP_400_BAD_REQUEST: {"model": Error},
+#         status.HTTP_401_UNAUTHORIZED: {"model": Error},
+#         status.HTTP_403_FORBIDDEN: {"model": Error},
+#     },
+# )
+# def delete_department(
+#     companies_service: companies_service_dependency,
+#     user: user_dependency,
+#     company_id: int,
+# ):
+#     company = db.query(models.Companies).filter_by(id=company_id).first()
 
-    if edit_company_request.kpp:
-        company.kpp = edit_company_request.kpp
+#     if company is None:
+#         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Company does not exist")
 
-    db.commit()
+#     if company.owner_id != user["id"]:
+#         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
+#     owner_employees = db.query(models.Employee).filter_by(owner_id=user["id"]).all()
+#     company_employees = [
+#         employee for employee in owner_employees if employee.current_company == company
+#     ]
 
-@router.delete("/{company_id}")
-def delete_department(db: db_dependency, user: user_dependency, company_id: int):
-    company = db.query(models.Companies).filter_by(id=company_id).first()
+#     for employee in company_employees:
+#         db.delete(employee)
 
-    if company is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Company does not exist")
-
-    if company.owner_id != user["id"]:
-        raise HTTPException(status.HTTP_403_FORBIDDEN)
-
-    owner_employees = db.query(models.Employee).filter_by(owner_id=user["id"]).all()
-    company_employees = [
-        employee for employee in owner_employees if employee.current_company == company
-    ]
-
-    for employee in company_employees:
-        db.delete(employee)
-
-    db.commit()
+#     db.commit()
