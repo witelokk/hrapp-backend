@@ -1,6 +1,7 @@
 from typing import Iterable
 
 from server.model.company import Company
+from server.schemas.companies import Company as CompanySchema
 from server.repo.companies_repository import CompaniesRepository
 from .companies_service import CompaniesService, CompanyNotExistError, ForbiddenError
 
@@ -9,10 +10,17 @@ class CompaniesServiceImpl(CompaniesService):
     def __init__(self, companies_repository: CompaniesRepository):
         self._repository = companies_repository
 
-    def get_companies(self, user_id: int) -> Iterable[Company]:
-        return self._repository.get_companies(user_id)
+    def get_companies(self, user_id: int) -> Iterable[CompanySchema]:
+        companies = self._repository.get_companies(user_id)
 
-    def get_company(self, user_id: int, company_id: int) -> Company:
+        return [
+            CompanySchema(
+                id=company.id, name=company.name, inn=company.inn, kpp=company.kpp
+            )
+            for company in companies
+        ]
+
+    def get_company(self, user_id: int, company_id: int) -> CompanySchema:
         company = self._repository.get_company(company_id)
 
         if not company:
@@ -21,7 +29,9 @@ class CompaniesServiceImpl(CompaniesService):
         if company.owner_id != user_id:
             raise ForbiddenError()
 
-        return company
+        return CompanySchema(
+            id=company.id, name=company.name, inn=company.inn, kpp=company.kpp
+        )
 
     def create_company(
         self,
@@ -30,7 +40,8 @@ class CompaniesServiceImpl(CompaniesService):
         kpp: str,
         owner_id: int,
     ) -> int:
-        self._repository.create_company(name, inn, kpp, owner_id)
+        company_id = self._repository.create_company(name, inn, kpp, owner_id)
+        return company_id
 
     def edit_company(
         self,

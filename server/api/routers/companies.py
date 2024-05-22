@@ -26,11 +26,7 @@ def get_companies(
     user: user_dependency,
 ) -> list[Company]:
     companies = companies_service.get_companies(user["id"])
-
-    return [
-        Company(id=company.id, name=company.name, inn=company.inn, kpp=company.kpp)
-        for company in companies
-    ]
+    return companies
 
 
 @router.get(
@@ -53,7 +49,7 @@ def get_company(
     except ForbiddenError:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    return Company(id=company.id, name=company.name, inn=company.inn, kpp=company.kpp)
+    return company
 
 
 @router.post(

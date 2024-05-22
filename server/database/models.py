@@ -99,7 +99,7 @@ class Employee(Base):
             if action.action_type == "position_transfer"
         ]
         position_transfers = sorted(
-            position_transfers, key=lambda transfer: transfer.transfer_date
+            position_transfers, key=lambda transfer: transfer.date
         )
         return (
             position_transfers[-1].new_position
@@ -122,7 +122,7 @@ class Employee(Base):
             if action.action_type == "department_transfer"
         ]
         department_transfers = sorted(
-            department_transfers, key=lambda transfer: transfer.transfer_date
+            department_transfers, key=lambda transfer: transfer.date
         )
         return (
             department_transfers[-1].new_department
@@ -142,9 +142,7 @@ class Employee(Base):
         salary_changes = [
             action for action in self.actions if action.action_type == "salary_change"
         ]
-        salary_changes = sorted(
-            salary_changes, key=lambda transfer: transfer.change_date
-        )
+        salary_changes = sorted(salary_changes, key=lambda transfer: transfer.date)
         return salary_changes[-1].new_salary if salary_changes else recruitment.salary
 
     @property
@@ -161,6 +159,7 @@ class Action(Base):
     action_type = mapped_column(String(32), nullable=False)
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"))
     employee: Mapped["Employee"] = relationship("Employee", back_populates="actions")
+    date: Mapped[datetime.date] = mapped_column(Date(), nullable=True)
     __mapper_args__ = {"polymorphic_on": action_type}
 
 
@@ -171,7 +170,6 @@ class RecruitmentAction(Action):
         ForeignKey("departments.id"), nullable=True
     )
     department: Mapped["Department"] = relationship(foreign_keys=[department_id])
-    recruitment_date: Mapped[datetime.date] = mapped_column(Date(), nullable=True)
     position: Mapped[str] = mapped_column(String(), nullable=True)
     salary: Mapped[float] = mapped_column(Float(), nullable=True)
 
@@ -179,18 +177,12 @@ class RecruitmentAction(Action):
 class PositionTransferAction(Action):
     __mapper_args__ = {"polymorphic_identity": "position_transfer"}
 
-    transfer_date: Mapped[datetime.date] = mapped_column(
-        Date(), use_existing_column=True, nullable=True
-    )
     new_position: Mapped[str] = mapped_column(String(), nullable=True)
 
 
 class DepartmentTransferAction(Action):
     __mapper_args__ = {"polymorphic_identity": "department_transfer"}
 
-    transfer_date: Mapped[datetime.date] = mapped_column(
-        Date(), use_existing_column=True, nullable=True
-    )
     new_department_id: Mapped[int] = mapped_column(
         ForeignKey("departments.id"), nullable=True
     )
@@ -202,33 +194,8 @@ class DepartmentTransferAction(Action):
 class SalaryChangeAction(Action):
     __mapper_args__ = {"polymorphic_identity": "salary_change"}
 
-    change_date: Mapped[datetime.date] = mapped_column(Date(), nullable=True)
     new_salary: Mapped[float] = mapped_column(Float(), nullable=True)
 
 
-class VacationAction(Action):
-    __mapper_args__ = {"polymorphic_identity": "vacation"}
-
-    start_date: Mapped[datetime.date] = mapped_column(
-        Date(), use_existing_column=True, nullable=True
-    )
-    end_date: Mapped[datetime.date] = mapped_column(
-        Date(), use_existing_column=True, nullable=True
-    )
-
-
-class SickLeaveAction(Action):
-    __mapper_args__ = {"polymorphic_identity": "sick_leave"}
-
-    start_date: Mapped[datetime.date] = mapped_column(
-        Date(), use_existing_column=True, nullable=True
-    )
-    end_date: Mapped[datetime.date] = mapped_column(
-        Date(), use_existing_column=True, nullable=True
-    )
-
-
-class DissmisalAction(Action):
-    __mapper_args__ = {"polymorphic_identity": "dissmisal"}
-
-    dismissal_date: Mapped[datetime.date] = mapped_column(Date(), nullable=True)
+class DismissalAction(Action):
+    __mapper_args__ = {"polymorphic_identity": "dismissal"}

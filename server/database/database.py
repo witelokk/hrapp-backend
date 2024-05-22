@@ -17,7 +17,9 @@ url = URL.create(
     get_settings().postgres_port,
 )
 
-engine = create_engine(url, connect_args={}, poolclass=StaticPool, echo=True)
+engine = create_engine(
+    url, connect_args={}, poolclass=StaticPool, pool_pre_ping=True, echo=True
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

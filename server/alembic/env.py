@@ -12,7 +12,10 @@ from server.database.models import *
 # access to the values within the .ini file in use.
 config = context.config
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", f"postgresql://{settings.postgres_username}:{settings.postgres_password}@{settings.postgres_host}:{settings.postgres_port}/postgres")
+config.set_main_option(
+    "sqlalchemy.url",
+    f"postgresql://{settings.postgres_username}:{settings.postgres_password}@{settings.postgres_host}:{settings.postgres_port}/postgres",
+)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -69,9 +72,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

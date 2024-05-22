@@ -1,6 +1,6 @@
 from typing import Iterable, Protocol
 
-from server.model.company import Company
+from server.schemas.companies import Company
 
 
 class CompanyNotExistError(Exception):

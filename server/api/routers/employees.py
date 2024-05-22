@@ -5,9 +5,15 @@ from fastapi import Depends, HTTPException, status
 from fastapi.routing import APIRouter
 from pydantic import BaseModel, StringConstraints
 
-from server.api.dependenicies import user_dependency
-from server.api.dependenicies import user_dependency, db_dependency
+from server.api.dependenicies import (
+    user_dependency,
+    db_dependency,
+    actions_repository_dependency,
+    departments_repository_dependency,
+)
 from server.database import models
+from server.schemas.actions import ActionWrapper
+from server.services.convert_actions_to_schemas import convert_actions_to_schemas
 
 router = APIRouter(prefix="/employees", tags=["employees"])
 
@@ -39,6 +45,7 @@ class Employee(BaseModel):
     passport_date: datetime
     passport_issuer: str
     current_info: CurrentInfo | None
+    actions: list[ActionWrapper] | None = None
 
     @classmethod
     def from_sqlalchemy_model(cls, employee: models.Employee) -> "Employee":
@@ -132,7 +139,12 @@ def get_employees_by_department(
 
 @router.get("/{employee_id}")
 def get_employee(
-    db: db_dependency, user: user_dependency, employee_id: int
+    db: db_dependency,
+    user: user_dependency,
+    employee_id: int,
+    departments_repository: departments_repository_dependency,
+    actions_repository: actions_repository_dependency,
+    include_actions: bool = False,
 ) -> Employee:
     employee = db.query(models.Employee).filter_by(id=employee_id).first()
 
@@ -142,7 +154,13 @@ def get_employee(
     if employee.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    return Employee.from_sqlalchemy_model(employee)
+    employee = Employee.from_sqlalchemy_model(employee)
+
+    if include_actions:
+        actions = actions_repository.get_actions(employee_id)
+        employee.actions = convert_actions_to_schemas(departments_repository, actions)
+
+    return employee
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)

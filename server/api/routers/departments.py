@@ -3,17 +3,12 @@ from fastapi import Depends, HTTPException, status
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from server.schemas.departments import Department
 from server.api.dependenicies import user_dependency
 from server.api.dependenicies import user_dependency, db_dependency
 from server.database import models
 
 router = APIRouter(prefix="/departments", tags=["departments"])
-
-
-class Department(BaseModel):
-    id: int
-    name: str
-    company_id: int
 
 
 class CreateDepartmentRequest(BaseModel):
