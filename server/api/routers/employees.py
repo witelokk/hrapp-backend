@@ -13,6 +13,7 @@ from server.api.dependenicies import (
 )
 from server.database import models
 from server.schemas.actions import ActionWrapper
+from server.schemas.departments import Department
 from server.services.convert_actions_to_schemas import convert_actions_to_schemas
 
 router = APIRouter(prefix="/employees", tags=["employees"])
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/employees", tags=["employees"])
 
 class CurrentInfo(BaseModel):
     position: str
-    department_id: int
+    department: Department
     salary: float
 
 
@@ -58,7 +59,11 @@ class Employee(BaseModel):
         else:
             current_info = CurrentInfo(
                 position=current_position,
-                department_id=current_department.id,
+                department=Department(
+                    id=current_department.id,
+                    name=current_department.name,
+                    company_id=current_department.company_id
+                ),
                 salary=current_salary,
             )
 
