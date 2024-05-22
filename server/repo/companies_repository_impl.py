@@ -45,6 +45,7 @@ class CompaniesRepositoryImpl(CompaniesRepository):
         db_company = DbCompany(name=name, inn=inn, kpp=kpp, owner_id=owner_id)
         self._db.add(db_company)
         self._db.commit()
+        return db_company.id
 
     def edit_company(
         self,
