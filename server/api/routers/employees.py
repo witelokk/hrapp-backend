@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from enum import Enum
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
@@ -34,7 +34,7 @@ class Employee(BaseModel):
     id: int
     name: str
     gender: EmployeeGender
-    birthdate: datetime
+    birthdate: datetime.date
     inn: Annotated[str, StringConstraints(min_length=12, max_length=12, pattern="\d+")]
     snils: Annotated[
         str, StringConstraints(min_length=11, max_length=11, pattern="\d+")
@@ -43,7 +43,7 @@ class Employee(BaseModel):
     passport_number: Annotated[
         str, StringConstraints(min_length=10, max_length=10, pattern="\d+")
     ]
-    passport_date: datetime
+    passport_date: datetime.date
     passport_issuer: str
     current_info: CurrentInfo | None
     actions: list[ActionWrapper] | None = None
@@ -85,7 +85,7 @@ class Employee(BaseModel):
 class CreateEmployeeRequest(BaseModel):
     name: str
     gender: EmployeeGender
-    birthdate: datetime
+    birthdate: datetime.datetime
     inn: Annotated[str, StringConstraints(min_length=12, max_length=12, pattern="\d+")]
     snils: Annotated[
         str, StringConstraints(min_length=11, max_length=11, pattern="\d+")
@@ -94,7 +94,7 @@ class CreateEmployeeRequest(BaseModel):
     passport_number: Annotated[
         str, StringConstraints(min_length=10, max_length=10, pattern="\d+")
     ]
-    passport_date: datetime
+    passport_date: datetime.datetime
     passport_issuer: str
 
 
