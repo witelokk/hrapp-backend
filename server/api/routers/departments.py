@@ -37,7 +37,7 @@ def get_department(
     if department.company.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
-    return Department(id=department.id, name=department.name)
+    return Department(id=department.id, name=department.name, company_id=department.company_id)
 
 
 @router.get("/company/{company_id}")
