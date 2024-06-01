@@ -18,7 +18,7 @@ url = URL.create(
 )
 
 engine = create_engine(
-    url, connect_args={}, poolclass=StaticPool, pool_pre_ping=True, echo=True
+    url, connect_args={}, poolclass=StaticPool, echo=True
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
