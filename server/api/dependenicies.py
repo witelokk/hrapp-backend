@@ -29,6 +29,8 @@ from sqlalchemy.orm import Session
 
 from server.services.companies_service import CompaniesService
 from server.services.companies_service_impl import CompaniesServiceImpl
+from server.services.reports_service import ReportsService
+from server.services.reports_service_impl import ReportsServiceImpl
 
 db_dependency = Annotated[Session, Depends(get_db)]
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token")
@@ -102,6 +104,7 @@ def get_token_service(
 
 def get_companies_service(
     companies_repository: companies_repository_dependency,
+    employees_repository: employees_repository_dependency,
 ) -> CompaniesService:
     return CompaniesServiceImpl(companies_repository)
 
@@ -116,12 +119,23 @@ def get_actions_service(
     )
 
 
+def get_reports_service(
+    companies_repository: companies_repository_dependency,
+    departments_repository: departments_repository_dependency,
+    employees_repository: employees_repository_dependency,
+) -> ReportsService:
+    return ReportsServiceImpl(
+        companies_repository, departments_repository, employees_repository
+    )
+
+
 user_service_dependency = Annotated[UserService, Depends(get_user_service)]
 token_service_dependency = Annotated[TokenService, Depends(get_token_service)]
 companies_service_dependency = Annotated[
     CompaniesService, Depends(get_companies_service)
 ]
 actions_service_dependency = Annotated[ActionsService, Depends(get_actions_service)]
+reports_service_dependency = Annotated[ReportsService, Depends(get_reports_service)]
 
 
 def get_current_user(

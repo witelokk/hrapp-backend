@@ -18,3 +18,16 @@ class DepartmentsRepositoryImpl(DepartmentsRepository):
             name=db_department.name,
             company_id=db_department.company_id,
         )
+
+    def get_departments(self, company_id: int) -> list[Department]:
+        db_departments = (
+            self._db.query(DbDepartment).filter_by(company_id=company_id).all()
+        )
+        return [
+            Department(
+                id=db_department.id,
+                name=db_department.name,
+                company_id=db_department.company_id,
+            )
+            for db_department in db_departments
+        ]

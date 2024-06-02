@@ -62,7 +62,7 @@ class Employee(BaseModel):
                 department=Department(
                     id=current_department.id,
                     name=current_department.name,
-                    company_id=current_department.company_id
+                    company_id=current_department.company_id,
                 ),
                 salary=current_salary,
             )
@@ -207,6 +207,9 @@ def delete_employee(
 
     if employee.owner_id != user["id"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    # if edit_employee_request.gender:
+    #     employee.gender = edit_employee_request.
 
     employee.name = edit_employee_request.name
     db.commit()

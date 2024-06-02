@@ -147,7 +147,7 @@ class Employee(Base):
 
     @property
     def current_company(self) -> Company:
-        if not self.current_company:
+        if not self.current_department:
             return None
         return self.current_department.company
 
