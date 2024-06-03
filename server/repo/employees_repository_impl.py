@@ -100,7 +100,12 @@ class EmployeesRepositoryImpl(EmployeesRepository):
         self._db.commit()
 
     def delete_employee(self, employee_id: int) -> None:
-        self._db.query(DbEmployee).filter_by(id=employee_id).delete()
+        employee = self._db.query(DbEmployee).filter_by(id=employee_id).one_or_none()
+
+        if employee is None:
+            return
+
+        self._db.delete(employee)
         self._db.commit()
 
     def delete_employees(self, company_id: int) -> None:
