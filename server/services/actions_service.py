@@ -15,6 +15,14 @@ class ForbiddenError(Exception):
     pass
 
 
+class DepartmentNotExistsError(Exception):
+    pass
+
+
+class NoAccessToDepartmentError(Exception):
+    pass
+
+
 class ActionsService(Protocol):
     def get_actions(self, user_id: int, employee_id: int) -> list[ActionWrapper]:
         pass

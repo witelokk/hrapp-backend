@@ -1,4 +1,3 @@
-from typing import Iterator
 from server.repo.actions_repository import ActionsRepository
 from server.repo.departments_repository import DepartmentsRepository
 from server.repo.employees_repository import EmployeesRepository
@@ -8,6 +7,8 @@ from .actions_service import (
     ActionsService,
     EmployeNotExistsError,
     ForbiddenError,
+    DepartmentNotExistsError,
+    NoAccessToDepartmentError,
 )
 from server.schemas.actions import CreateActionRequest
 from server.model.action import *
@@ -48,7 +49,9 @@ class ActionsServiceImpl(ActionsService):
         if employee.owner_id != user_id:
             raise ForbiddenError()
 
-        action = self._create_action_from_request(employee_id, create_action_request)
+        action = self._create_action_from_request(
+            user_id, employee_id, create_action_request
+        )
         self._actions_repository.add_action(action)
 
     def update_action(
@@ -65,7 +68,7 @@ class ActionsServiceImpl(ActionsService):
             raise ForbiddenError()
 
         new_action = self._create_action_from_request(
-            action.employee_id, create_action_request
+            user_id, action.employee_id, create_action_request
         )
         new_action.id = action.id
 
@@ -85,10 +88,20 @@ class ActionsServiceImpl(ActionsService):
         self._actions_repository.delete_action(action_id=action_id)
 
     def _create_action_from_request(
-        self, employee_id: int, create_action_request: CreateActionRequest
+        self, user_id: int, employee_id: int, create_action_request: CreateActionRequest
     ) -> Action:
         match create_action_request.action_type:
             case "recruitment":
+                department = self._departments_repository.get_department(
+                    create_action_request.department_id
+                )
+
+                if department is None:
+                    raise DepartmentNotExistsError()
+
+                if department.owner_id != user_id:
+                    raise NoAccessToDepartmentError()
+
                 return RecruitmentAction(
                     employee_id=employee_id,
                     date=create_action_request.date,
@@ -103,6 +116,16 @@ class ActionsServiceImpl(ActionsService):
                     new_position=create_action_request.new_position,
                 )
             case "department_transfer":
+                department = self._departments_repository.get_department(
+                    create_action_request.new_department_id
+                )
+
+                if department is None:
+                    raise DepartmentNotExistsError()
+
+                if department.owner_id != user_id:
+                    raise NoAccessToDepartmentError()
+
                 return DepartmentTransferAction(
                     employee_id=employee_id,
                     date=create_action_request.date,

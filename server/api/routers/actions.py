@@ -9,6 +9,8 @@ from server.services.actions_service import (
     ActionNotExistsError,
     EmployeNotExistsError,
     ForbiddenError,
+    DepartmentNotExistsError,
+    NoAccessToDepartmentError,
 )
 
 router = APIRouter(prefix="/actions", tags=["actions"])
@@ -51,6 +53,7 @@ def get_actions(
     "/employee/{employee_id}",
     status_code=status.HTTP_201_CREATED,
     responses={
+        status.HTTP_400_BAD_REQUEST: {"model": Error},
         status.HTTP_403_FORBIDDEN: {"model": Error},
         status.HTTP_401_UNAUTHORIZED: {"model": Error},
     },
@@ -65,6 +68,10 @@ def create_action(
         actions_service.create_action(
             user["id"], employee_id, create_action_request=create_action_request
         )
+    except DepartmentNotExistsError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Department does not exist")
+    except NoAccessToDepartmentError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No access to department")
     except ForbiddenError:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
@@ -89,6 +96,10 @@ def edit_action(
         )
     except ActionNotExistsError:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Action does not exist")
+    except DepartmentNotExistsError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Department does not exist")
+    except NoAccessToDepartmentError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No access to department")
     except ForbiddenError:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 

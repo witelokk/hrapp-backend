@@ -13,8 +13,13 @@ class DepartmentsRepositoryImpl(DepartmentsRepository):
         db_department = (
             self._db.query(DbDepartment).filter_by(id=department_id).one_or_none()
         )
+
+        if db_department is None:
+            return None
+
         return Department(
             id=db_department.id,
+            owner_id=db_department.company.owner_id,
             name=db_department.name,
             company_id=db_department.company_id,
         )
@@ -26,6 +31,7 @@ class DepartmentsRepositoryImpl(DepartmentsRepository):
         return [
             Department(
                 id=db_department.id,
+                owner_id=db_department.company.owner_id,
                 name=db_department.name,
                 company_id=db_department.company_id,
             )
