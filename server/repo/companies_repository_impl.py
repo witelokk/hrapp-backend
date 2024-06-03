@@ -27,6 +27,10 @@ class CompaniesRepositoryImpl(CompaniesRepository):
 
     def get_company(self, company_id: int) -> Company:
         db_company = self._db.query(DbCompany).filter_by(id=company_id).one_or_none()
+
+        if db_company is None:
+            return None
+
         return Company(
             id=db_company.id,
             name=db_company.name,

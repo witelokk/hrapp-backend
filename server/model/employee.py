@@ -1,10 +1,22 @@
 from dataclasses import dataclass
+import datetime
+
+from server.database.models import Department
 
 
 @dataclass
 class Employee:
-    id: int
     owner_id: int
-    name: str = None
-    current_position: str = None
-    current_salary: float = None
+    name: str
+    gender: str
+    birthdate: datetime.date
+    inn: str
+    snils: str
+    address: str
+    passport_number: str
+    passport_date: datetime.date
+    passport_issuer: str
+    id: int = None
+    current_position: str | None = None
+    current_department: Department | None = None
+    current_salary: float | None = None

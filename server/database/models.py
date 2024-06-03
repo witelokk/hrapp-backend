@@ -85,7 +85,10 @@ class Employee(Base):
     owner: Mapped["User"] = relationship("User", back_populates="employees")
 
     @property
-    def current_position(self) -> str:
+    def current_position(self) -> str | None:
+        if any(action.action_type == "dismissal" for action in self.actions):
+            return None
+
         try:
             recruitment = [
                 action for action in self.actions if action.action_type == "recruitment"
@@ -108,7 +111,10 @@ class Employee(Base):
         )
 
     @property
-    def current_department(self) -> Department:
+    def current_department(self) -> Department | None:
+        if any(action.action_type == "dismissal" for action in self.actions):
+            return None
+
         try:
             recruitment = [
                 action for action in self.actions if action.action_type == "recruitment"
@@ -131,7 +137,10 @@ class Employee(Base):
         )
 
     @property
-    def current_salary(self) -> float:
+    def current_salary(self) -> float | None:
+        if any(action.action_type == "dismissal" for action in self.actions):
+            return None
+
         try:
             recruitment = [
                 action for action in self.actions if action.action_type == "recruitment"
@@ -150,6 +159,29 @@ class Employee(Base):
         if not self.current_department:
             return None
         return self.current_department.company
+
+    @property
+    def last_copmany(self) -> Company:
+        try:
+            recruitment = [
+                action for action in self.actions if action.action_type == "recruitment"
+            ][0]
+        except IndexError:
+            return None
+
+        department_transfers = [
+            action
+            for action in self.actions
+            if action.action_type == "department_transfer"
+        ]
+        department_transfers = sorted(
+            department_transfers, key=lambda transfer: transfer.date
+        )
+        return (
+            department_transfers[-1].new_department.company
+            if department_transfers
+            else recruitment.department.company
+        )
 
 
 class Action(Base):

@@ -29,6 +29,8 @@ from sqlalchemy.orm import Session
 
 from server.services.companies_service import CompaniesService
 from server.services.companies_service_impl import CompaniesServiceImpl
+from server.services.employees_service import EmployeesService
+from server.services.employees_service_impl import EmployeesServiceImpl
 from server.services.reports_service import ReportsService
 from server.services.reports_service_impl import ReportsServiceImpl
 
@@ -109,6 +111,20 @@ def get_companies_service(
     return CompaniesServiceImpl(companies_repository)
 
 
+def get_employees_service(
+    employees_repository: employees_repository_dependency,
+    companies_repository: companies_repository_dependency,
+    departments_repository: departments_repository_dependency,
+    actions_repository: actions_repository_dependency,
+) -> EmployeesService:
+    return EmployeesServiceImpl(
+        employees_repository,
+        companies_repository,
+        departments_repository,
+        actions_repository,
+    )
+
+
 def get_actions_service(
     actions_repository: actions_repository_dependency,
     employees_repository: employees_repository_dependency,
@@ -136,6 +152,9 @@ companies_service_dependency = Annotated[
 ]
 actions_service_dependency = Annotated[ActionsService, Depends(get_actions_service)]
 reports_service_dependency = Annotated[ReportsService, Depends(get_reports_service)]
+employees_service_dependency = Annotated[
+    EmployeesService, Depends(get_employees_service)
+]
 
 
 def get_current_user(

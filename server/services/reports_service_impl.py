@@ -88,7 +88,9 @@ class CompanyReportGenerator:
         )
 
     def _generate_employees_data(self, department_id: int) -> list[Employee]:
-        employees = self._employees_repository.get_employees(department_id)
+        employees = self._employees_repository.get_employees_by_department(
+            department_id
+        )
         return [self._generate_employee_data(employee) for employee in employees]
 
     def _generate_department_data(self, department) -> Department:
