@@ -111,11 +111,11 @@ def edit_employee(
     create_employee_request: CreateEmployeeRequest,
 ):
     try:
-        return employees_service.update_employee(
+        employees_service.update_employee(
             user["id"], employee_id, create_employee_request
         )
     except EmployeeNotExistsError:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Employee does not exist")
     except ForbiddenError:
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
@@ -136,6 +136,6 @@ def delete_employee(
     try:
         employees_service.delete_employee(user["id"], employee_id)
     except EmployeeNotExistsError:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Employee does not exist")
     except ForbiddenError:
         raise HTTPException(status.HTTP_403_FORBIDDEN)

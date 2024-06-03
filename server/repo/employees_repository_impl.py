@@ -86,9 +86,17 @@ class EmployeesRepositoryImpl(EmployeesRepository):
         return db_employee.id
 
     def update_employee(self, employee: Employee) -> None:
-        self._db.query(DbEmployee).filter_by(id=employee.id).delete()
-        db_employee = db_from_employee(employee)
-        self._db.add(db_employee)
+        db_employee = self._db.query(DbEmployee).filter_by(id=employee.id).one_or_none()
+        db_employee.owner_id = employee.owner_id
+        db_employee.name = employee.name
+        db_employee.gender = employee.gender
+        db_employee.birthdate = employee.birthdate
+        db_employee.inn = employee.inn
+        db_employee.snils = employee.snils
+        db_employee.address = employee.address
+        db_employee.passport_number = employee.passport_number
+        db_employee.passport_date = employee.passport_date
+        db_employee.passport_issuer = employee.passport_issuer
         self._db.commit()
 
     def delete_employee(self, employee_id: int) -> None:
