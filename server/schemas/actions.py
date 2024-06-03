@@ -71,22 +71,6 @@ class DismissalAction(BaseModel):
     pass
 
 
-# class ActionWrapper(BaseModel):
-#     action_type: Literal[
-#         "recruitment",
-#         "position_transfer",
-#         "department_transfer",
-#         "salary_change",
-#         "dismissal",
-#     ]
-#     date: datetime.date
-#     recruitment: RecruitmentAction | None = None
-#     position_transfer: PositionTransferAction | None = None
-#     department_transfer: DepartmentTransferAction | None = None
-#     salary_change: SalaryChangeAction | None = None
-#     dismissal: DismissalAction | None = None
-
-
 class RecruitmentActionWrapper(BaseModel):
     action_type: Literal["recruitment"] = "recruitment"
     id: int

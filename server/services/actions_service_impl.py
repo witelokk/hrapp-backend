@@ -48,40 +48,28 @@ class ActionsServiceImpl(ActionsService):
         if employee.owner_id != user_id:
             raise ForbiddenError()
 
-        match create_action_request.action_type:
-            case "recruitment":
-                action = RecruitmentAction(
-                    employee_id=employee_id,
-                    date=create_action_request.date,
-                    department_id=create_action_request.department_id,
-                    position=create_action_request.position,
-                    salary=create_action_request.salary,
-                )
-            case "position_transfer":
-                action = PositionTransferAction(
-                    employee_id=employee_id,
-                    date=create_action_request.date,
-                    new_position=create_action_request.new_position,
-                )
-            case "department_transfer":
-                action = DepartmentTransferAction(
-                    employee_id=employee_id,
-                    date=create_action_request.date,
-                    new_department_id=create_action_request.new_department_id,
-                )
-            case "salary_change":
-                action = SalaryChangeAction(
-                    employee_id=employee_id,
-                    date=create_action_request.date,
-                    new_salary=create_action_request.new_salary,
-                )
-            case "dismissal":
-                action = DismissalAction(
-                    employee_id=employee_id,
-                    date=create_action_request.date,
-                )
-
+        action = self._create_action_from_request(employee_id, create_action_request)
         self._actions_repository.add_action(action)
+
+    def update_action(
+        self, user_id: int, action_id: int, create_action_request: CreateActionRequest
+    ):
+        action = self._actions_repository.get_action(action_id)
+
+        if not action:
+            raise ActionNotExistsError()
+
+        employee = self._employees_repository.get_employee(action.employee_id)
+
+        if employee.owner_id != user_id:
+            raise ForbiddenError()
+
+        new_action = self._create_action_from_request(
+            action.employee_id, create_action_request
+        )
+        new_action.id = action.id
+
+        self._actions_repository.update_action(new_action)
 
     def delete_action(self, user_id: int, action_id: int):
         action = self._actions_repository.get_action(action_id)
@@ -95,3 +83,39 @@ class ActionsServiceImpl(ActionsService):
             raise ForbiddenError()
 
         self._actions_repository.delete_action(action_id=action_id)
+
+    def _create_action_from_request(
+        self, employee_id: int, create_action_request: CreateActionRequest
+    ) -> Action:
+        match create_action_request.action_type:
+            case "recruitment":
+                return RecruitmentAction(
+                    employee_id=employee_id,
+                    date=create_action_request.date,
+                    department_id=create_action_request.department_id,
+                    position=create_action_request.position,
+                    salary=create_action_request.salary,
+                )
+            case "position_transfer":
+                return PositionTransferAction(
+                    employee_id=employee_id,
+                    date=create_action_request.date,
+                    new_position=create_action_request.new_position,
+                )
+            case "department_transfer":
+                return DepartmentTransferAction(
+                    employee_id=employee_id,
+                    date=create_action_request.date,
+                    new_department_id=create_action_request.new_department_id,
+                )
+            case "salary_change":
+                return SalaryChangeAction(
+                    employee_id=employee_id,
+                    date=create_action_request.date,
+                    new_salary=create_action_request.new_salary,
+                )
+            case "dismissal":
+                return DismissalAction(
+                    employee_id=employee_id,
+                    date=create_action_request.date,
+                )

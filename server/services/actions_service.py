@@ -27,5 +27,10 @@ class ActionsService(Protocol):
     ):
         pass
 
+    def update_action(
+        self, user_id: int, action_id: int, create_action_request: CreateActionRequest
+    ):
+        pass
+
     def delete_action(self, user_id: int, action_id: int) -> None:
         pass

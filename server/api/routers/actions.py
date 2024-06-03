@@ -69,6 +69,30 @@ def create_action(
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 
 
+@router.put(
+    "/{action_id}",
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": Error},
+        status.HTTP_403_FORBIDDEN: {"model": Error},
+        status.HTTP_401_UNAUTHORIZED: {"model": Error},
+    },
+)
+def edit_action(
+    actions_service: actions_service_dependency,
+    user: user_dependency,
+    action_id: int,
+    create_action_request: CreateActionRequest,
+) -> None:
+    try:
+        actions_service.update_action(
+            user["id"], action_id, create_action_request=create_action_request
+        )
+    except ActionNotExistsError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Action does not exist")
+    except ForbiddenError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+
 @router.delete(
     "/{action_id}",
     responses={
