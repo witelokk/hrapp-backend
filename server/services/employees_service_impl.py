@@ -54,6 +54,7 @@ def employee_from_model(employee: EmployeeModel, actions: list[ActionWrapper] = 
         passport_issuer=employee.passport_issuer,
         current_info=current_info,
         actions=actions,
+        company_id=employee.last_company_id
     )
 
 

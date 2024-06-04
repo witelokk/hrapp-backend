@@ -34,6 +34,7 @@ class Employee(BaseModel):
     ]
     passport_date: datetime.date
     passport_issuer: str
+    company_id: int
     current_info: CurrentInfo | None
     actions: list[ActionWrapper] | None = None
 

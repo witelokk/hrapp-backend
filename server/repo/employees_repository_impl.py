@@ -31,6 +31,7 @@ def employee_from_db(db_employee: DbEmployee) -> Employee:
             else None
         ),
         current_salary=db_employee.current_salary,
+        last_company_id=db_employee.last_copmany.id if db_employee.last_copmany else None
     )
 
 

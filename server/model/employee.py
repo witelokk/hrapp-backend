@@ -16,6 +16,7 @@ class Employee:
     passport_number: str
     passport_date: datetime.date
     passport_issuer: str
+    last_company_id: int = None
     id: int = None
     current_position: str | None = None
     current_department: Department | None = None
