@@ -1,9 +1,11 @@
 from fastapi import FastAPI
+from sqlalchemy.orm import sessionmaker
 
 from .api.routers import actions, auth, companies, departments, employees, reports
 
 from .database.database import engine, Base
 
+Base.metadata.create_all(engine)
 
 app = FastAPI()
 app.include_router(auth.router)
